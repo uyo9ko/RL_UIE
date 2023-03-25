@@ -3,7 +3,7 @@ import torchvision
 
 from dataset import MyDataModule
 
-data_dir = 'data/'
+data_dir = '/mnt/epnfs/zhshen/RL_UIE/uieb/BIG_UIEB'
 batch_size = 4
 
 # Initialize datamodule
