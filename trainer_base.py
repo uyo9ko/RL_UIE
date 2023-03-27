@@ -17,6 +17,8 @@ class MyModel(pl.LightningModule):
         self.iqa_metric = pyiqa.create_metric('musiq-spaq')
         self.net = mynet()
         self.test_musiq_spaq = torch.tensor(0.0,device='cuda')
+        if not os.path.exists(self.opt.val_img_folder):
+            os.makedirs(self.opt.val_img_folder)
      
 
     

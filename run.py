@@ -6,7 +6,6 @@ import wandb
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, LearningRateMonitor
 from dataset import MyDataModule
-from trainer_base import MyModel
 
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description='PyTorch Lightning Training')
@@ -19,7 +18,10 @@ parser.add_argument('--log_name', type=str, default='default', help='Name of the
 parser.add_argument('--num_samples', type=int, default=20, help='Number of samples to generate')
 parser.add_argument('--data_dir', type=str, default='data', help='Path to data')
 parser.add_argument('--val_img_folder', type=str, default='data/val', help='Path to validation images')
+parser.add_argument('--data_name', type=str,default='uieb') 
+parser.add_argument('--rl',action='store_true',default=False)
 args = parser.parse_args()
+
 
 # Initialize WandB logger
 wandb_logger = WandbLogger(project='RL_UIE', name=args.log_name)
@@ -41,7 +43,11 @@ checkpoint_callback = ModelCheckpoint(
 # )
 
 # Initialize data module and model
-dm = MyDataModule(batch_size=args.batch_size, data_dir = args.data_dir)
+dm = MyDataModule(batch_size=args.batch_size, data_dir = args.data_dir,data_name=args.data_name)
+if args.rl:
+    from trainer_rl import MyModel
+else:
+    from trainer_base import MyModel
 model = MyModel(args)
 
 # Initialize trainer and train the model

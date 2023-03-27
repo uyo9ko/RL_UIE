@@ -7,14 +7,20 @@ import torch
 import pytorch_lightning as pl
 
 class MyDataModule(pl.LightningDataModule):
-    def __init__(self, batch_size=4, data_dir='data/'):
+    def __init__(self, batch_size=4, data_dir='data/', data_name='uieb'):
         super().__init__()
         self.batch_size = batch_size
         self.data_dir = data_dir
+        self.data_name = data_name
 
     def setup(self, stage=None):
-        self.train_dataset = MyDataset(os.path.join(self.data_dir ), transform=self._train_transforms(),is_train =True)
-        self.val_dataset = MyDataset(os.path.join(self.data_dir), transform=self._val_transforms())
+        if self.data_name == 'uieb':
+            self.train_dataset = MyDataset(os.path.join(self.data_dir ), transform=self._train_transforms(),is_train =True)
+            self.val_dataset = MyDataset(os.path.join(self.data_dir), transform=self._val_transforms())
+        elif self == 'squid':
+            self.train_dataset = SquidDataset(os.path.join(self.data_dir ), transform=self._train_transforms(),is_train =True)
+            self.val_dataset = SquidDataset(os.path.join(self.data_dir), transform=self._val_transforms())
+
 
     def train_dataloader(self):
         return torch.utils.data.DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=16)
@@ -90,4 +96,40 @@ class MyDataset(torch.utils.data.Dataset):
 
     def __len__(self):
         return len(self.image_name_list)
+    
+
+class SquidDataset(torch.utils.data.Dataset):
+    def __init__(self, data_dir, transform=None,is_train=False):
+        self.data_dir = data_dir
+        self.transform = transform
+        self.istrain = is_train
+        self.image_name_list = os.listdir(os.path.join(self.data_dir))
+
+    def __getitem__(self, idx):
+        # Load raw image
+        raw_image_path = os.path.join(self.data_dir,  self.image_name_list[idx])
+        raw_image = Image.open(raw_image_path)
+        (ih, iw) = raw_image.size
+        if not self.istrain:
+            dh = ih % 8
+            dw = iw % 8
+            new_h, new_w = ih - dh, iw - dw
+            raw_image = raw_image.resize((new_h,new_w))
+            ref_image = ref_image.resize((new_h,new_w))
+
+        raw_image = np.array(raw_image)
+        # Apply transforms (if any)
+        if self.transform:
+            transformed = self.transform(image=raw_image, image_ref=raw_image)
+            raw_image = transformed['image']
+            ref_image = transformed['image_ref']
+
+        # Return as tensor
+        raw_image = raw_image.float()/255.0
+        ref_image = ref_image.float()/255.0
+        return raw_image, ref_image, os.path.basename(raw_image_path)
+
+    def __len__(self):
+        return len(self.image_name_list)
+    
 
