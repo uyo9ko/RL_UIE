@@ -34,7 +34,8 @@ class MyDataModule(pl.LightningDataModule):
     def _val_transforms(self):
         return A.Compose([
             ToTensorV2()
-        ])
+        ],
+        additional_targets={'image_ref': 'image'})
 
 class MyDataset(torch.utils.data.Dataset):
     def __init__(self, data_dir, transform=None,is_train=False):
@@ -83,6 +84,8 @@ class MyDataset(torch.utils.data.Dataset):
             ref_image = transformed['image_ref']
 
         # Return as tensor
+        raw_image = raw_image.float()/255.0
+        ref_image = ref_image.float()/255.0
         return raw_image, ref_image, os.path.basename(raw_image_path)
 
     def __len__(self):

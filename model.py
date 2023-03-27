@@ -27,9 +27,8 @@ class Encoder(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self, device):
+    def __init__(self, ):
         super(Decoder, self).__init__()
-        self.device = device
         self.pr_encoder = Encoder(3)
         self.po_encoder = Encoder(6)
 
