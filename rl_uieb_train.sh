@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=8 python run.py --rl --data_name uieb --log_name rl_ranker_niqe_5 --data_dir /mnt/epnfs/zhshen/RL_UIE/uieb/BIG_UIEB  --batch_size 16 --lr 1e-4

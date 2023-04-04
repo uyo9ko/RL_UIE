@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=2 python run.py --rl --data_name squid --log_name rl_squid --data_dir /mnt/epnfs/zhshen/RL_UIE/squid  --batch_size 16 --lr 1e-4

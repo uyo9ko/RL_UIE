@@ -1,0 +1,1 @@
+python run.py --log_name base_new --data_dir /mnt/epnfs/zhshen/RL_UIE/uieb/BIG_UIEB 

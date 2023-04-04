@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=1 python run_x_unet.py --log_name vit --data_dir /mnt/epnfs/zhshen/DE_code_0904/UIEB --batch_size 8
