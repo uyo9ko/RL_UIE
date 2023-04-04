@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.nn import MSELoss
-
+import sys
 
 class ConvBlock(nn.Module):
     def __init__(self, in_ch, out_ch, activation="ReLU", kernel_size=3, dilation=1, padding_mode='circular', conv_class=nn.Conv2d):
@@ -154,7 +154,8 @@ class Decoder(nn.Module):
                     f = torch.cat([f, latent], dim=1)
 
                 f = self.upsampling(f)
-
+                # print(f.shape)
+                # print(feature_maps[i+1].shape)
                 f = torch.cat([ f, feature_maps[i+1] ], dim=1)
                 f = self.decoder_blocks[i](f)
 
@@ -214,7 +215,6 @@ class Decoder(nn.Module):
                     f = torch.cat([f, latent], dim=1)
 
                 f = self.upsampling(f)
-
                 f = torch.cat([ f, feature_maps[i+1] ], dim=1)
                 f = self.decoder_blocks[i](f)
             
@@ -282,7 +282,7 @@ class HPUNet(nn.Module):
         self.decoder = Decoder(list(reversed(chs)), latent_num, activation, list(reversed(scale_depth)), list(reversed(kernel_size)), list(reversed(dilation)), padding_mode=padding_mode, latent_channels=latent_channels, latent_locks=latent_locks, conv_class=self.conv_class)
         self.decoder_head = ScaleBlock(decoder_head_in_channels, out_ch, activation, scale_depth[0], kernel_size[0], dilation[0], padding_mode=padding_mode, conv_class=self.conv_class)
 
-        self.posterior_encoder_head = ConvBlock(in_ch+1, chs[0], activation, kernel_size[0], dilation[0], padding_mode='zeros', conv_class=self.conv_class)
+        self.posterior_encoder_head = ConvBlock(in_ch*2, chs[0], activation, kernel_size[0], dilation[0], padding_mode='zeros', conv_class=self.conv_class)
         self.posterior_encoder = Encoder(chs, activation, scale_depth, kernel_size, dilation, padding_mode='zeros', conv_class=self.conv_class)
 
     def forward(self, x, y=None, times=1, first_channel_only=True, insert_from_postnet=False):
@@ -309,9 +309,6 @@ class HPUNet(nn.Module):
                 infodicts.append(infodict)
 
         output = torch.stack(outs, dim=1)
-
-        if first_channel_only is True:
-            output = output[:,:,0]
 
         return output, infodicts
 

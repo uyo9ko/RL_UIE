@@ -6,7 +6,7 @@ import wandb
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, LearningRateMonitor
 from dataset import MyDataModule
-
+pl.seed_everything(43)
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description='PyTorch Lightning Training')
 
@@ -63,6 +63,32 @@ parser.add_argument('--val_img_folder', type=str, default='/mnt/epnfs/zhshen/RL_
 parser.add_argument('--data_name', type=str,default='uieb') 
 parser.add_argument('--rl',action='store_true',default=False)
 args = parser.parse_args()
+args.pixels = 256*256
+if args.latent_locks is None:
+    args.latent_locks = [0] * args.latent_num
+args.latent_locks = [bool(l) for l in args.latent_locks]
+
+if len(args.kernel_size) < len(args.intermediate_ch):
+    if len(args.kernel_size) == 1:
+        args.kernel_size = args.kernel_size * len(args.intermediate_ch)
+    else:
+        print('Invalid kernel size, exiting...')
+        exit()
+
+if len(args.dilation) < len(args.intermediate_ch):
+    if len(args.dilation) == 1:
+        args.dilation = args.dilation * len(args.intermediate_ch)
+    else:
+        print('Invalid dilation, exiting...')
+        exit()
+
+if len(args.scale_depth) < len(args.intermediate_ch):
+    if len(args.scale_depth) == 1:
+        args.scale_depth = args.scale_depth * len(args.intermediate_ch)
+    else:
+        print('Invalid scale depth, exiting...')
+        exit()
+
 
 if not os.path.exists(os.path.join(args.val_img_folder,args.log_name)):
     os.makedirs(os.path.join(args.val_img_folder,args.log_name))
@@ -77,8 +103,8 @@ checkpoint_callback = ModelCheckpoint(
     dirpath=os.path.join(args.val_img_folder,args.log_name),
     filename='model_{epoch:02d}_{val_loss:.2f}',
     save_top_k=2,
-    monitor='rl_metric',
-    mode='max'
+    monitor='val_toal',
+    mode='min'
 )
 
 # early_stop_callback = EarlyStopping(
@@ -102,7 +128,7 @@ trainer = pl.Trainer(
     callbacks=[checkpoint_callback, LearningRateMonitor(logging_interval='epoch')],
     logger=wandb_logger,
     num_sanity_val_steps=0,
-    check_val_every_n_epoch = 20
+    check_val_every_n_epoch = 1
 )
 trainer.fit(model, datamodule=dm)
 # trainer.validate(model, datamodule=dm)

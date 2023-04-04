@@ -16,7 +16,7 @@ class MyModel(pl.LightningModule):
         self.net = HPUNet(in_ch=opt.in_ch, out_ch=opt.out_ch, chs=opt.intermediate_ch,
                 latent_num=opt.latent_num, latent_channels=opt.latent_chs, latent_locks=opt.latent_locks,
                 scale_depth=opt.scale_depth, kernel_size=opt.kernel_size, dilation=opt.dilation,
-                padding_mode=opt.padding_mode ).double()
+                padding_mode=opt.padding_mode )
         reconstruction_loss = MSELossWrapper()
         beta_scheduler = BetaConstant(self.opt.beta)
         self.criterion = ELBOLoss(reconstruction_loss=reconstruction_loss, beta=beta_scheduler)
@@ -30,32 +30,30 @@ class MyModel(pl.LightningModule):
 
         # Total Loss
         if type == 'train':
-            _dict = {   'total': loss_per_pixel,
-                        'kl term': kl_term_per_pixel, 
-                        'reconstruction': reconstruction_per_pixel  }
+            self.log(  'total', loss_per_pixel)
+            self.log( 'kl term', kl_term_per_pixel)
+            self.log( 'reconstruction', reconstruction_per_pixel )
         else:
-            _dict ={ 'val_toal': loss_per_pixel,
-                    'val_kl term': kl_term_per_pixel,
-                    'val_reconstruction': reconstruction_per_pixel}
+            self.log('val_toal', loss_per_pixel)
+            self.log('val_kl term', kl_term_per_pixel)
+            self.log('val_reconstruction', reconstruction_per_pixel )
         
-        self.log(_dict)
-
         # KL Term Decomposition
-        if type == 'train':
-            _dict = { 'sum': sum(kl_per_pixel) }
-            _dict.update( { 'scale {}'.format(v): kl_per_pixel[v] for v in range(self.opt.latent_num) } )
-        else:
-            _dict = { 'val_sum': sum(kl_per_pixel) }
-            _dict.update( { 'val_scale {}'.format(v): kl_per_pixel[v] for v in range(self.opt.latent_num) } )
-        self.log(_dict)
+        # if type == 'train':
+        #     _dict = { 'sum': sum(kl_per_pixel) }
+        #     _dict.update( { 'scale {}'.format(v): kl_per_pixel[v] for v in range(self.opt.latent_num) } )
+        # else:
+        #     _dict = { 'val_sum': sum(kl_per_pixel) }
+        #     _dict.update( { 'val_scale {}'.format(v): kl_per_pixel[v] for v in range(self.opt.latent_num) } )
     
         
     def training_step(self, batch, batch_idx):
         images, truths, _ = batch
 
         preds, infodicts = self.net(images, truths)
-        preds, infodict = preds[:,0], infodicts[0]
-
+        preds = preds[:,0,:,:,:]
+        infodict = infodicts[0]
+       
         loss = self.criterion(preds, truths, kls=infodict['kls'])
         self.criterion.beta_scheduler.step()
 
@@ -67,16 +65,16 @@ class MyModel(pl.LightningModule):
 
     def configure_optimizers(self):
         optimizer = optim.Adamax(self.net.parameters(), lr=self.opt.lr, weight_decay=self.opt.wd)
-        lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=self.opt.epochs)
+        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=self.opt.epochs)
         
-        return {'optimizer': optimizer , 'lr_scheduler':lr_scheduler}
+        return {'optimizer': optimizer , 'scheduler':scheduler}
     
     def validation_step(self, batch, batch_idx):
         val_images, val_truths, name = batch
         val_minibatches = val_images.shape[0]
 
-        mean_val_loss, mean_val_reconstruction_term, mean_val_kl_term = torch.zeros(1, device=device), torch.zeros(1, device=device), torch.zeros(1, device=device)
-        mean_val_kl = torch.zeros(self.opt.latent_num, device=device)
+        mean_val_loss, mean_val_reconstruction_term, mean_val_kl_term = torch.zeros(1, device='cuda'), torch.zeros(1, device='cuda'), torch.zeros(1, device='cuda')
+        mean_val_kl = torch.zeros(self.opt.latent_num, device='cuda')
 
         preds, infodicts = self.net(val_images, val_truths)
         preds, infodict = preds[:,0], infodicts[0]
@@ -100,6 +98,13 @@ class MyModel(pl.LightningModule):
             'kls': mean_val_kl
         }
         self.record_history(loss_dict, type='val')
+
+    def test_step(self, batch, batch_idx):
+        test_images, test_truths, name = batch
+        preds, infodicts = self.net(test_images,times=20)
+        preds_avg = torch.mean(preds, dim=1)
+        torchvision.utils.save_image(preds_avg, os.path.join(self.opt.val_img_folder,self.opt.log_name,name[0]))
+
 
 
 

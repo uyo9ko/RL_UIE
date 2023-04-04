@@ -27,6 +27,9 @@ class MyDataModule(pl.LightningDataModule):
 
     def val_dataloader(self):
         return torch.utils.data.DataLoader(self.val_dataset, batch_size=1, shuffle=False, num_workers=16)
+    
+    def test_dataloader(self):
+        return torch.utils.data.DataLoader(self.val_dataset, batch_size=1, shuffle=False, num_workers=16)
 
     def _train_transforms(self):
         return A.Compose([
@@ -39,6 +42,7 @@ class MyDataModule(pl.LightningDataModule):
 
     def _val_transforms(self):
         return A.Compose([
+            A.Resize(512,512),
             ToTensorV2()
         ],
         additional_targets={'image_ref': 'image'})
