@@ -2,6 +2,11 @@ import torch
 import torch.nn as nn
 from torch.distributions import Normal, Independent
 import numpy as np
+import cv2
+import sys
+from uiqm import getUIQM
+from nevaluate import nmetrics
+
 
 
 class SELayer(torch.nn.Module):
@@ -94,4 +99,25 @@ class Compute_z(nn.Module):
         s_log_sigma = s_mu_log_sigma[:, self.latent_dim:]
         s_dist = Independent(Normal(loc=s_mu, scale=torch.exp(s_log_sigma)), 1) 
         return u_dist, s_dist, u_mu, s_mu, torch.exp(u_log_sigma), torch.exp(s_log_sigma)
+    
 
+
+def uciqe_and_uiqm(img):
+ 
+    if len(img.shape) == 4:
+        img = img.squeeze(0)
+    img = img.transpose(1,2,0)
+    assert img.shape[2] == 3, "Image should be RGB format"
+
+    img = np.clip(img,0,1)
+    # translate img from 0-1 to 0-255 and make uint8
+    uciqe = nmetrics(img)
+
+    img = (img * 255)
+    uiqm = getUIQM(img)
+    
+    final_score = 0
+    # uiqm = 0
+
+    return final_score, uciqe, uiqm
+    

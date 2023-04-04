@@ -17,7 +17,7 @@ class MyDataModule(pl.LightningDataModule):
         if self.data_name == 'uieb':
             self.train_dataset = MyDataset(os.path.join(self.data_dir ), transform=self._train_transforms(),is_train =True)
             self.val_dataset = MyDataset(os.path.join(self.data_dir), transform=self._val_transforms())
-        elif self == 'squid':
+        elif self.data_name == 'squid':
             self.train_dataset = SquidDataset(os.path.join(self.data_dir ), transform=self._train_transforms(),is_train =True)
             self.val_dataset = SquidDataset(os.path.join(self.data_dir), transform=self._val_transforms())
 
@@ -115,7 +115,7 @@ class SquidDataset(torch.utils.data.Dataset):
             dw = iw % 8
             new_h, new_w = ih - dh, iw - dw
             raw_image = raw_image.resize((new_h,new_w))
-            ref_image = ref_image.resize((new_h,new_w))
+            # ref_image = ref_image.resize((new_h,new_w))
 
         raw_image = np.array(raw_image)
         # Apply transforms (if any)
